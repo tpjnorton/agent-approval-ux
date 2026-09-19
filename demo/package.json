@@ -2,12 +2,11 @@
   "name": "demo",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.4.2",
   "scripts": {
     "sync": "node scripts/sync-skill.mjs",
-    "predev": "npm run sync",
-    "prebuild": "npm run sync",
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "pnpm sync && next dev",
+    "build": "pnpm sync && next build",
     "start": "next start"
   },
   "dependencies": {

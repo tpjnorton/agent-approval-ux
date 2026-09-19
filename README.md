@@ -41,7 +41,7 @@ The `demo/` folder is a Next.js app with one scripted agent run rendered twice.
 | ![before](docs/before.png) | ![after](docs/after.png) |
 
 ```bash
-cd demo && npm install && npm run dev
+cd demo && pnpm install && pnpm dev
 ```
 
 ## Layout
