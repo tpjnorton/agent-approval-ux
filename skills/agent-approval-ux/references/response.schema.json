@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tpjnorton/agent-approval-ux/skills/agent-approval-ux/references/response.schema.json",
+  "title": "ApprovalResponse",
+  "description": "What the decision surface returns. Exactly one of the four responses. Maps to AI SDK addToolApprovalResponse, AG-UI resume entries, CopilotKit respond() and MCP elicitation actions.",
+  "type": "object",
+  "required": ["id", "response"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "description": "The ApprovalDecision id." },
+    "response": { "type": "string", "enum": ["approve", "reject", "edit-and-approve", "defer"] },
+    "reason": { "type": "string", "description": "Optional free text. Never required, for any response." },
+    "editedArguments": { "type": "object", "description": "Required when response is edit-and-approve. The full argument values after the human's edits." },
+    "alwaysAllow": { "type": "boolean", "description": "True only when the human ticked the scoped always-allow control alongside approve." },
+    "decidedAt": { "type": "string", "format": "date-time" }
+  }
+}

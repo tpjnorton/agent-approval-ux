@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tpjnorton/agent-approval-ux/skills/agent-approval-ux/references/schema.json",
+  "title": "ApprovalDecision",
+  "description": "The payload an agent hands to a decision surface when it wants a human to approve an action. Field order matches visual priority on the card. Maps onto AI SDK tool-approval parts, AG-UI interrupts, CopilotKit useHumanInTheLoop args and MCP tool calls; see references/rationale.md for the mapping.",
+  "type": "object",
+  "required": ["id", "action", "where", "reversibility", "risk", "arguments", "availableResponses"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Stable id for this decision. Reuse the framework's approval id (AI SDK part.approval.id, AG-UI interrupt id, MCP request id)."
+    },
+    "action": {
+      "type": "string",
+      "maxLength": 140,
+      "description": "The action in one plain imperative sentence that names the verb, the object and the count. 'Delete 14 invoices older than 2019 from Stripe.' If it needs two sentences, split the gate."
+    },
+    "where": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Systems touched, by the name the human knows them by. ['Stripe'] not ['stripe_api_v2']."
+    },
+    "reversibility": {
+      "type": "string",
+      "enum": ["undoable", "undoable-with-effort", "permanent"],
+      "description": "Never blank. 'undoable' means one action restores the prior state. 'undoable-with-effort' means it can be restored but takes work, time or another party. 'permanent' means it cannot be restored, or the effect has already reached people or external systems."
+    },
+    "risk": {
+      "type": "object",
+      "required": ["level", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["routine", "notable", "consequential"],
+          "description": "Assigned by the agent from consequence, not by a keyword list. routine: reversible, in scope, low spend. notable: reversible with effort, or unusual for the context, or moderate spend. consequential: permanent, or touches money, people, production or external parties."
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 140,
+          "description": "Why this level. Shown next to the level on the card. 'sends email to 340 external recipients'."
+        }
+      }
+    },
+    "why": {
+      "type": "object",
+      "description": "The evidence the agent relied on. Collapsed by default; expanded by default when risk.level is consequential.",
+      "required": ["summary", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 280,
+          "description": "One or two sentences on what the agent concluded and from what."
+        },
+        "evidence": {
+          "type": "array",
+          "description": "Links to the actual tool outputs the agent read, not paraphrases of them.",
+          "items": {
+            "type": "object",
+            "required": ["label", "ref"],
+            "additionalProperties": false,
+            "properties": {
+              "label": { "type": "string", "description": "'Stripe invoice search, 14 results'" },
+              "ref": { "type": "string", "description": "toolCallId, message part id, URL or resource URI that resolves to the raw output." }
+            }
+          }
+        }
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["routine", "unusual-for-context", "agent-uncertain"],
+      "description": "Only present when the agent has a real signal. Never a fabricated percentage."
+    },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "currency": { "type": "string", "description": "ISO 4217 code, or 'tokens', 'credits'." },
+        "runSoFar": { "type": "number", "minimum": 0, "description": "Spend this run before this action." },
+        "estimated": { "type": "number", "minimum": 0, "description": "Estimated spend for this action alone." }
+      }
+    },
+    "arguments": {
+      "type": "object",
+      "required": ["values"],
+      "additionalProperties": false,
+      "properties": {
+        "values": {
+          "type": "object",
+          "description": "The raw tool input. Collapsed by default."
+        },
+        "editable": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "JSON pointers (RFC 6901) into values that the human may change before approving. Empty or absent means 'edit and approve' is unavailable for this gate."
+        },
+        "schema": {
+          "type": "object",
+          "description": "JSON Schema for values, if the framework provides one. Used to render inline editors."
+        },
+        "internal": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Tool name, model name, request ids. Displayed only inside the collapsed section, never as primary text."
+        }
+      }
+    },
+    "availableResponses": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "enum": ["approve", "reject", "edit-and-approve", "defer"] },
+      "description": "Which of the four responses this gate supports. 'defer' should be present unless the run cannot continue without an answer."
+    },
+    "alwaysAllow": {
+      "type": "object",
+      "description": "Present only if the surface offers 'always allow'. Scoped to an action class, never to a raw tool name.",
+      "required": ["actionClass", "revokePath"],
+      "additionalProperties": false,
+      "properties": {
+        "actionClass": { "type": "string", "description": "Human-readable class. 'Post messages to #ops in Slack'." },
+        "revokePath": { "type": "string", "description": "Route or label of the place the human can revoke it. Must be visible from the card." }
+      }
+    },
+    "pending": {
+      "type": "object",
+      "description": "Queue context, for batching and the pending-gates ceiling.",
+      "additionalProperties": false,
+      "properties": {
+        "position": { "type": "integer", "minimum": 1 },
+        "total": { "type": "integer", "minimum": 1 },
+        "ceiling": { "type": "integer", "minimum": 1, "default": 5, "description": "When total exceeds this, the agent stops and summarises before adding more." }
+      }
+    }
+  }
+}
